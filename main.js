@@ -13,7 +13,7 @@ function createWindow() {
     }
   });
 
-  win.loadURL('https://perchance.org/YOUR_CHAT_URL');
+  win.loadURL('https://perchance.org/ai-character-chat');
 }
 
 app.whenReady().then(createWindow);
