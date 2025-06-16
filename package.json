@@ -1,0 +1,24 @@
+{
+  "name": "perchance-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zuriel-IX/perchance-character-app.git"
+  },
+  "keywords": [],
+  "author": "Zuriel",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Zuriel-IX/perchance-character-app/issues"
+  },
+  "homepage": "https://github.com/Zuriel-IX/perchance-character-app#readme",
+  "devDependencies": {
+    "electron": "^36.4.0"
+  }
+}
