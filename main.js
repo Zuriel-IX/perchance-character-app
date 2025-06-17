@@ -1,81 +1,72 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron';
-import { join } from 'path';
-import { existsSync, mkdirSync, appendFileSync } from 'fs';
+const { app, BrowserWindow, ipcMain, session } = require('electron');
+const path = require('path');
+const fs = require('fs');
+const config = require('./config.json');
 
-import { logRequests, requestFilter, debugMode } from './config.json';
-
-const storagePath = join(__dirname, 'storage');
-if (!existsSync(storagePath)) {
-  mkdirSync(storagePath);
-}
-
-const logDir = join(__dirname, 'logs');
-if (!existsSync(logDir)) {
-  mkdirSync(logDir);
-}
-const logPath = join(logDir, "latest.log")
-appendFileSync(logPath, 'App started at ' + new Date().toISOString() + '\n');
-
-function logToFile(message) {
-  if (logRequests) {
-    const timestamp = new Date().toISOString();
-    appendFileSync(logPath, `[${timestamp}] ${message}\n`);
-  }
-}
-
-function isAllowed(url, method) {
-  const { allowUrls, blockUrls, methods, allowUnknown } = requestFilter;
-
-  if (!methods.includes(method)) return false;
-
-  if (blockUrls.some(blocked => url.startsWith(blocked))) return false;
-  if (allowUrls.some(allowed => url.startsWith(allowed))) return true;
-
-  return allowUnknown; // Default result true
-}
-
-app.setPath('userData', join(__dirname, 'storage'));
+const { logRequests, requestFilter, debugMode, blockUnknown } = config;
 
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
+      sandbox: false, // optional: more control
     }
   });
 
-  win.loadURL("https://perchance.org/ai-character-chat")
+  win.loadURL('https://perchance.org/ai-character-chat');
 
-  if (debugMode) {
-    win.webContents.openDevTools()
-  }
+  const filter = { urls: ['*://*/*'] };
+
+  session.defaultSession.webRequest.onBeforeRequest(filter, (details, callback) => {
+    const { url, method } = details;
+    let blocked = false;
+
+    // Only filter methods we're interested in
+    if (requestFilter.methods.includes(method)) {
+      const isBlockedUrl = requestFilter.blockUrls.some(blockedUrl => url.startsWith(blockedUrl));
+      const isAllowedUrl = requestFilter.allowUrls.some(allowedUrl => url.startsWith(allowedUrl));
+
+      // Apply blocking logic
+      if (isBlockedUrl) {
+        blocked = true;
+      } else if (blockUnknown && !isAllowedUrl) {
+        blocked = true;
+      }
+    }
+
+    // Debug print
+    if (debugMode) {
+      console.log(`[${method}] ${url} => ${blocked ? 'BLOCKED' : 'ALLOWED'}`);
+    }
+
+    // Optional log to file
+    if (logRequests) {
+      const logPath = path.join(__dirname, 'logs', 'request.log');
+      const logEntry = `[${new Date().toISOString()}] [${method}] ${url} ${blocked ? '[BLOCKED]' : ''}\n`;
+
+      if (!fs.existsSync(path.dirname(logPath))) {
+        fs.mkdirSync(path.dirname(logPath), { recursive: true });
+      }
+
+      fs.appendFileSync(logPath, logEntry);
+    }
+
+    // Continue or cancel the request
+    callback({ cancel: blocked });
+  })
 }
 
 app.whenReady().then(() => {
-  const ses = session.defaultSession;
-
-  ses.webRequest.onBeforeRequest((details, callback) => {
-    const { url, method } = details;
-    const allowed = isAllowed(url, method);
-
-    if (!allowed) {
-      logToFile(`BLOCKED: ${method} ${url}`);
-      return callback({ cancel: true });
-    }
-
-    if (method === 'POST' && details.uploadData) {
-      try {
-        const body = Buffer.concat(details.uploadData.map(p => p.bytes)).toString();
-        logToFile(`POST BODY: ${url} => ${body}`);
-      } catch (err) {
-        logToFile(`ERROR reading POST body from ${url}`);
-      }
-    }
-    
-    logToFile(`ALLOWED: ${method} ${url}`);
-    return callback({ cancel: false });
-  });
   createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit(); // standard Mac check
 });

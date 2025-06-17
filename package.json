@@ -1,11 +1,12 @@
 {
   "name": "perchance-project",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-packager . perchance-character-chat --platform=linux --arch=x64 --overwrite --icon=perchance-icon.png --prune=true --out=dist"
   },
   "repository": {
     "type": "git",
@@ -19,6 +20,7 @@
   },
   "homepage": "https://github.com/Zuriel-IX/perchance-character-app#readme",
   "devDependencies": {
-    "electron": "^36.4.0"
+    "electron": "^36.4.0",
+    "electron-packager": "^17.1.2"
   }
 }

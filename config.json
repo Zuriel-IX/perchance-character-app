@@ -27,8 +27,8 @@
       "ads.",
       "tracking."
     ],
-    "methods": ["GET", "POST"],
-    "allowUnknown": false
+    "methods": ["GET", "POST"]
   },
+  "blockUnknown": false,
   "logRequests": false
 }
