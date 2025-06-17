@@ -1,6 +1,12 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
+
+const storagePath = path.join(__dirname, 'storage');
+if (!fs.existsSync(storagePath)) {
+  fs.mkdirSync(storagePath);
+}
+app.setPath('userData', path.join(__dirname, 'storage'));
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -9,23 +15,12 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      partition: 'persist:perchance-storage'
     }
   });
 
-  win.loadURL('https://perchance.org/ai-character-chat');
+  win.loadURL("https://perchance.org/ai-character-chat")
 }
 
-app.whenReady().then(createWindow);
-
-ipcMain.handle('load-memory', async () => {
-  try {
-    return fs.readFileSync('./storage/perchance-mem.json', 'utf-8');
-  } catch (e) {
-    return '{}';
-  }
-});
-
-ipcMain.handle('save-memory', async (event, data) => {
-  fs.writeFileSync('./storage/perchance-mem.json', data);
+app.whenReady().then(() => {
+  createWindow();
 });
